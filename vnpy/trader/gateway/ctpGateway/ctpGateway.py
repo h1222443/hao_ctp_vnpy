@@ -12,12 +12,20 @@ import os
 import json
 from copy import copy
 from datetime import datetime, timedelta
-
-from vnpy.api.ctp import MdApi, TdApi, defineDict
 from vnpy.trader.vtGateway import *
 from vnpy.trader.vtFunction import getJsonPath, getTempPath
 from vnpy.trader.vtConstant import GATEWAYTYPE_FUTURES
-from .language import text
+from language import text
+from vnpy.api.ctp.ctp_data_type import defineDict
+
+import sys
+import platform
+sys.path.append(os.path.join(sys.path[0], '..'))  # 调用父目录下的模块
+import py_ctp.ctp_struct as ctp
+from py_ctp.ctp_quote import Quote
+from py_ctp.ctp_trade import Trade
+import _thread
+from time import sleep
 
 
 # 以下为一些VT类型和CTP类型的映射字典
@@ -225,14 +233,16 @@ class CtpGateway(VtGateway):
     
 
 ########################################################################
-class CtpMdApi(MdApi):
+class CtpMdApi:
     """CTP行情API实现"""
 
     #----------------------------------------------------------------------
     def __init__(self, gateway):
-        """Constructor"""
-        super(CtpMdApi, self).__init__()
-        
+
+        self.Session = ''
+        dllpath = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', 'dll')
+        self.MDAPI = Quote(os.path.join(dllpath, 'ctp_quote.' + ('dll' if 'Windows' in platform.system() else 'so')))
+
         self.gateway = gateway                  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
         
@@ -406,17 +416,18 @@ class CtpMdApi(MdApi):
         
         # 如果尚未建立服务器连接，则进行连接
         if not self.connectionStatus:
-            # 创建C++环境中的API对象，这里传入的参数是需要用来保存.con文件的文件夹路径
-            path = getTempPath(self.gatewayName + '_')
-            self.createFtdcMdApi(path)
-            
-            # 注册服务器地址
-            self.registerFront(self.address)
-            
-            # 初始化连接，成功会调用onFrontConnected
-            self.init()
-            
-        # 若已经连接但尚未登录，则进行登录
+
+            self.MDAPI.CreateApi()
+            spi = self.MDAPI.CreateSpi()
+            self.MDAPI.RegisterSpi(spi)
+            self.MDAPI.OnFrontConnected = self.onFrontConnected
+            self.MDAPI.OnRspUserLogin = self.onRspUserLogin
+            self.MDAPI.OnRtnDepthMarketData = self.onRtnDepthMarketData
+            self.MDAPI.RegCB()
+            self.MDAPI.RegisterFront(self.address)
+            self.MDAPI.Init()
+
+            # 若已经连接但尚未登录，则进行登录
         else:
             if not self.loginStatus:
                 self.login()
@@ -427,7 +438,7 @@ class CtpMdApi(MdApi):
         # 这里的设计是，如果尚未登录就调用了订阅方法
         # 则先保存订阅请求，登录完成后会自动订阅
         if self.loginStatus:
-            self.subscribeMarketData(str(subscribeReq.symbol))
+            self.MDAPI.SubscribeMarketData(str(subscribeReq.symbol))
         self.subscribedSymbols.add(subscribeReq)   
         
     #----------------------------------------------------------------------
@@ -435,18 +446,11 @@ class CtpMdApi(MdApi):
         """登录"""
         # 如果填入了用户名密码等，则登录
         if self.userID and self.password and self.brokerID:
-            req = {}
-            req['UserID'] = self.userID
-            req['Password'] = self.password
-            req['BrokerID'] = self.brokerID
-            self.reqID += 1
-            self.reqUserLogin(req, self.reqID)    
-    
-    #----------------------------------------------------------------------
-    def close(self):
-        """关闭"""
-        self.exit()
-        
+
+            self.MDAPI.ReqUserLogin(UserID=self.userID,Password=self.password,BrokerID=self.brokerID)
+
+
+
     #----------------------------------------------------------------------
     def writeLog(self, content):
         """发出日志"""
@@ -457,13 +461,14 @@ class CtpMdApi(MdApi):
 
 
 ########################################################################
-class CtpTdApi(TdApi):
+class CtpTdApi:
     """CTP交易API实现"""
     
     #----------------------------------------------------------------------
     def __init__(self, gateway):
-        """API对象的初始化函数"""
-        super(CtpTdApi, self).__init__()
+        self.Session = ''
+        dllpath = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', 'dll')
+        self.TDAPI = Trade(os.path.join(dllpath, 'ctp_trade.' + ('dll' if 'Windows' in platform.system() else 'so')))
         
         self.gateway = gateway                  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
@@ -1361,19 +1366,29 @@ class CtpTdApi(TdApi):
         # 如果尚未建立服务器连接，则进行连接
         if not self.connectionStatus:
             # 创建C++环境中的API对象，这里传入的参数是需要用来保存.con文件的文件夹路径
-            path = getTempPath(self.gatewayName + '_')
-            self.createFtdcTraderApi(path)
-            
-            # 设置数据同步模式为推送从今日开始所有数据
-            self.subscribePrivateTopic(0)
-            self.subscribePublicTopic(0)            
-            
-            # 注册服务器地址
-            self.registerFront(self.address)
-            
-            # 初始化连接，成功会调用onFrontConnected
-            self.init()
-            
+#*************************************************************************
+            self.TDAPI.CreateApi()
+            spi = self.TDAPI.CreateSpi()
+            self.TDAPI.RegisterSpi(spi)
+
+            self.TDAPI.OnFrontConnected = self.onFrontConnected
+            self.TDAPI.OnFrontDisconnected = self.onFrontDisconnected
+            self.TDAPI.OnRspUserLogin = self.onRspUserLogin
+            self.TDAPI.OnRspSettlementInfoConfirm = self.onRspSettlementInfoConfirm
+            self.TDAPI.OnRspAuthenticate = self.onRspAuthenticate
+            self.TDAPI.OnRtnInstrumentStatus = self.onRtnInstrumentStatus
+            self.TDAPI.OnRspOrderInsert = self.onRspOrderInsert
+            self.TDAPI.OnRtnOrder = self.onRtnOrder
+
+            # _thread.start_new_thread(self.Qry, ())
+            self.TDAPI.RegCB()
+
+            self.TDAPI.RegisterFront(self.address)
+            self.TDAPI.SubscribePrivateTopic(nResumeType=2)  # quick
+            self.TDAPI.SubscribePrivateTopic(nResumeType=2)
+            self.TDAPI.Init()
+#************************************************************************
+
         # 若已经连接但尚未登录，则进行登录
         else:
             if self.requireAuthentication and not self.authStatus:
@@ -1390,12 +1405,8 @@ class CtpTdApi(TdApi):
         
         # 如果填入了用户名密码等，则登录
         if self.userID and self.password and self.brokerID:
-            req = {}
-            req['UserID'] = self.userID
-            req['Password'] = self.password
-            req['BrokerID'] = self.brokerID
-            self.reqID += 1
-            self.reqUserLogin(req, self.reqID)   
+
+            self.TDAPI.ReqUserLogin(UserID=self.userID,Password=self.password,BrokerID=self.brokerID)
             
     #----------------------------------------------------------------------
     def authenticate(self):
@@ -1407,22 +1418,19 @@ class CtpTdApi(TdApi):
             req['AuthCode'] = self.authCode
             req['UserProductInfo'] = self.userProductInfo
             self.reqID +=1
-            self.reqAuthenticate(req, self.reqID)
+            self.TDAPI.ReqAuthenticate(UserID=self.userID,BrokerID=self.brokerID,UserProductInfo=self.userProductInfo,AuthCode=self.authCode)
 
     #----------------------------------------------------------------------
     def qryAccount(self):
         """查询账户"""
         self.reqID += 1
-        self.reqQryTradingAccount({}, self.reqID)
+        self.TDAPI.ReqQryTradingAccount(self.reqID)
         
     #----------------------------------------------------------------------
     def qryPosition(self):
         """查询持仓"""
         self.reqID += 1
-        req = {}
-        req['BrokerID'] = self.brokerID
-        req['InvestorID'] = self.userID
-        self.reqQryInvestorPosition(req, self.reqID)
+        self.TDAPI.ReqQryInvestorPosition(BrokerID=self.brokerID,InvestorID=self.userID)
         
     #----------------------------------------------------------------------
     def sendOrder(self, orderReq):
@@ -1464,7 +1472,7 @@ class CtpTdApi(TdApi):
             req['TimeCondition'] = defineDict['THOST_FTDC_TC_IOC']
             req['VolumeCondition'] = int(defineDict['THOST_FTDC_VC_CV'])
         
-        self.reqOrderInsert(req, self.reqID)
+        self.TDAPI.ReqOrderInsert(**req)
         
         # 返回订单号（字符串），便于某些算法进行动态管理
         vtOrderID = '.'.join([self.gatewayName, str(self.orderRef)])
@@ -1487,12 +1495,9 @@ class CtpTdApi(TdApi):
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
         
-        self.reqOrderAction(req, self.reqID)
+        self.TDAPI.ReqOrderAction(**req)
         
-    #----------------------------------------------------------------------
-    def close(self):
-        """关闭"""
-        self.exit()
+
 
     #----------------------------------------------------------------------
     def writeLog(self, content):
