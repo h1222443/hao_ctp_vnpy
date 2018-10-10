@@ -401,7 +401,7 @@ class DataEngine(object):
     """数据引擎"""
     contractFileName = 'ContractData.vt'
     contractFilePath = getTempPath(contractFileName)
-    
+
     FINISHED_STATUS = [STATUS_ALLTRADED, STATUS_REJECTED, STATUS_CANCELLED]
 
     #----------------------------------------------------------------------
@@ -537,16 +537,16 @@ class DataEngine(object):
     #----------------------------------------------------------------------
     def saveContracts(self):
         """保存所有合约对象到硬盘"""
-        f = shelve.open(self.contractFilePath)
-        f['data'] = self.contractDict
+        with shelve.open(self.contractFilePath) as f:
+            f['data'] = self.contractDict
         f.close()
     
     #----------------------------------------------------------------------
     def loadContracts(self):
         """从硬盘读取合约对象"""
-        f = shelve.open(self.contractFilePath)
-        if 'data' in f:
-            d = f['data']
+        with shelve.open(self.contractFilePath) as f:
+            if 'data' in f:
+                d = f['data']
             for key, value in d.items():
                 self.contractDict[key] = value
         f.close()
@@ -1089,3 +1089,5 @@ class PositionDetail(object):
         
         # 其他情况则直接返回空
         return []
+
+
