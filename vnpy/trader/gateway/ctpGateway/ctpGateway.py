@@ -240,7 +240,7 @@ class CtpMdApi:
     def __init__(self, gateway):
 
         self.Session = ''
-        dllpath = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', 'dll')
+        dllpath = 'C:\\Users\\hao\\PycharmProjects\\hao_ctp_vnpy\\dll'
         self.MDAPI = Quote(os.path.join(dllpath, 'ctp_quote.' + ('dll' if 'Windows' in platform.system() else 'so')))
 
         self.gateway = gateway                  # gateway对象
@@ -261,6 +261,7 @@ class CtpMdApi:
     #----------------------------------------------------------------------
     def onFrontConnected(self):
         """服务器连接"""
+        print('connected')
         self.connectionStatus = True
         
         self.writeLog(text.DATA_SERVER_CONNECTED)
@@ -413,7 +414,7 @@ class CtpMdApi:
         self.password = password            # 密码
         self.brokerID = brokerID            # 经纪商代码
         self.address = address              # 服务器地址
-        
+    
         # 如果尚未建立服务器连接，则进行连接
         if not self.connectionStatus:
 
@@ -467,7 +468,7 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def __init__(self, gateway):
         self.Session = ''
-        dllpath = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', 'dll')
+        dllpath = 'C:\\Users\\hao\\PycharmProjects\\hao_ctp_vnpy\\dll'
         self.TDAPI = Trade(os.path.join(dllpath, 'ctp_trade.' + ('dll' if 'Windows' in platform.system() else 'so')))
         
         self.gateway = gateway                  # gateway对象
@@ -1509,6 +1510,9 @@ class CtpTdApi:
 
 
 
-
+if __name__ == '__main__':
+    Ex = CtpGateway(EventEngine)
+    Ex.connect()
+    input()
 
     
