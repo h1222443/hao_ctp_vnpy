@@ -287,8 +287,8 @@ class CtpMdApi:
         """错误回报"""
         err = VtErrorData()
         err.gatewayName = self.gatewayName
-        err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorID = error.ErrorID
+        err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
         
     #----------------------------------------------------------------------
@@ -309,15 +309,15 @@ class CtpMdApi:
         else:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorID = error.ErrorID
+            err.errorMsg = error.ErrorMsg.decode('gbk')
             self.gateway.onError(err)
 
     #---------------------------------------------------------------------- 
     def onRspUserLogout(self, data, error, n, last):
         """登出回报"""
         # 如果登出成功，推送日志信息
-        if error['ErrorID'] == 0:
+        if error.ErrorID == 0:
             self.loginStatus = False
             self.gateway.mdConnected = False
             
@@ -327,18 +327,18 @@ class CtpMdApi:
         else:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorID = error.ErrorID
+            err.errorMsg = error.ErrorMsg.decode('gbk')
             self.gateway.onError(err)
         
     #----------------------------------------------------------------------  
     def onRspSubMarketData(self, data, error, n, last):
         """订阅合约回报"""
-        if 'ErrorID' in error and error['ErrorID']:
+        if 'ErrorID' in error and error.ErrorID:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorID = error.ErrorID
+            err.errorMsg = error.ErrorMsg.decode('gbk')
             self.gateway.onError(err)
         
     #----------------------------------------------------------------------  
@@ -351,7 +351,7 @@ class CtpMdApi:
     def onRtnDepthMarketData(self, data):
         """行情推送"""
         # 过滤尚未获取合约交易所时的行情推送
-        symbol = data['InstrumentID']
+        symbol = data.InstrumentID
         if symbol not in symbolExchangeDict:
             return
         
@@ -363,27 +363,27 @@ class CtpMdApi:
         tick.exchange = symbolExchangeDict[tick.symbol]
         tick.vtSymbol = tick.symbol #'.'.join([tick.symbol, tick.exchange])
         
-        tick.lastPrice = data['LastPrice']
-        tick.volume = data['Volume']
-        tick.openInterest = data['OpenInterest']
-        tick.time = '.'.join([data['UpdateTime'], str(data['UpdateMillisec']/100)])
+        tick.lastPrice = data.LastPrice
+        tick.volume = data.Volume
+        tick.openInterest = data.OpenInterest
+        tick.time = '.'.join([data.UpdateTime, str(data.UpdateMillisec/100)])
         
         # 上期所和郑商所可以直接使用，大商所需要转换
-        tick.date = data['ActionDay']
+        tick.date = data.ActionDay
         
-        tick.openPrice = data['OpenPrice']
-        tick.highPrice = data['HighestPrice']
-        tick.lowPrice = data['LowestPrice']
-        tick.preClosePrice = data['PreClosePrice']
+        tick.openPrice = data.OpenPrice
+        tick.highPrice = data.HighestPrice
+        tick.lowPrice = data.LowestPrice
+        tick.preClosePrice = data.PreClosePrice
         
-        tick.upperLimit = data['UpperLimitPrice']
-        tick.lowerLimit = data['LowerLimitPrice']
+        tick.upperLimit = data.UpperLimitPrice
+        tick.lowerLimit = data.LowerLimitPrice
         
         # CTP只有一档行情
-        tick.bidPrice1 = data['BidPrice1']
-        tick.bidVolume1 = data['BidVolume1']
-        tick.askPrice1 = data['AskPrice1']
-        tick.askVolume1 = data['AskVolume1']
+        tick.bidPrice1 = data.BidPrice1
+        tick.bidVolume1 = data.BidVolume1
+        tick.askPrice1 = data.AskPrice1
+        tick.askVolume1 = data.AskVolume1
         
         # 大商所日期转换
         if tick.exchange is EXCHANGE_DCE:
@@ -554,7 +554,7 @@ class CtpTdApi:
             req['BrokerID'] = self.brokerID
             req['InvestorID'] = self.userID
             self.reqID += 1
-            self.reqSettlementInfoConfirm(req, self.reqID)              
+            self.TDAPI.ReqSettlementInfoConfirm(**req)
                 
         # 否则，推送错误信息
         else:
@@ -651,7 +651,7 @@ class CtpTdApi:
         
         # 查询合约代码
         self.reqID += 1
-        self.reqQryInstrument({}, self.reqID)
+        self.TDAPI.ReqQryInstrument()
         
     #----------------------------------------------------------------------
     def onRspRemoveParkedOrder(self, data, error, n, last):
@@ -715,7 +715,7 @@ class CtpTdApi:
             return
         
         # 获取持仓缓存对象
-        posName = '.'.join([data['InstrumentID'], data['PosiDirection']])
+        posName = '.'.join([data.InstrumentID, data.PosiDirection])
         if posName in self.posDict:
             pos = self.posDict[posName]
         else:
@@ -723,20 +723,20 @@ class CtpTdApi:
             self.posDict[posName] = pos
             
             pos.gatewayName = self.gatewayName
-            pos.symbol = data['InstrumentID']
+            pos.symbol = data.InstrumentID
             pos.vtSymbol = pos.symbol
-            pos.direction = posiDirectionMapReverse.get(data['PosiDirection'], '')
+            pos.direction = posiDirectionMapReverse.get(data.PosiDirection, '')
             pos.vtPositionName = '.'.join([pos.vtSymbol, pos.direction]) 
         
         exchange = self.symbolExchangeDict.get(pos.symbol, EXCHANGE_UNKNOWN)
         
         # 针对上期所持仓的今昨分条返回（有昨仓、无今仓），读取昨仓数据
         if exchange == EXCHANGE_SHFE:
-            if data['YdPosition'] and not data['TodayPosition']:
-                pos.ydPosition = data['Position']
+            if data.YdPosition and not data.TodayPosition:
+                pos.ydPosition = data.Position
         # 否则基于总持仓和今持仓来计算昨仓数据
         else:
-            pos.ydPosition = data['Position'] - data['TodayPosition']
+            pos.ydPosition = data.Position - data.TodayPosition
             
         # 计算成本
         if pos.symbol not in self.symbolSizeDict:
@@ -745,18 +745,18 @@ class CtpTdApi:
         cost = pos.price * pos.position * size
         
         # 汇总总仓
-        pos.position += data['Position']
-        pos.positionProfit += data['PositionProfit']
+        pos.position += data.Position
+        pos.positionProfit += data.PositionProfit
         
         # 计算持仓均价
         if pos.position and size:    
-            pos.price = (cost + data['PositionCost']) / (pos.position * size)
+            pos.price = (cost + data.PositionCost) / (pos.position * size)
         
         # 读取冻结
         if pos.direction is DIRECTION_LONG: 
-            pos.frozen += data['LongFrozen']
+            pos.frozen += data.LongFrozen
         else:
-            pos.frozen += data['ShortFrozen']
+            pos.frozen += data.ShortFrozen
         
         # 查询回报结束
         if last:
@@ -774,22 +774,22 @@ class CtpTdApi:
         account.gatewayName = self.gatewayName
     
         # 账户代码
-        account.accountID = data['AccountID']
+        account.accountID = data.AccountID
         account.vtAccountID = '.'.join([self.gatewayName, account.accountID])
     
         # 数值相关
-        account.preBalance = data['PreBalance']
-        account.available = data['Available']
-        account.commission = data['Commission']
-        account.margin = data['CurrMargin']
-        account.closeProfit = data['CloseProfit']
-        account.positionProfit = data['PositionProfit']
+        account.preBalance = data.PreBalance
+        account.available = data.Available
+        account.commission = data.Commission
+        account.margin = data.CurrMargin
+        account.closeProfit = data.CloseProfit
+        account.positionProfit = data.PositionProfit
     
         # 这里的balance和快期中的账户不确定是否一样，需要测试
-        account.balance = (data['PreBalance'] - data['PreCredit'] - data['PreMortgage'] +
-                           data['Mortgage'] - data['Withdraw'] + data['Deposit'] +
-                           data['CloseProfit'] + data['PositionProfit'] + data['CashIn'] -
-                           data['Commission'])
+        account.balance = (data.PreBalance - data.PreCredit - data.PreMortgage +
+                           data.Mortgage - data.Withdraw + data.Deposit +
+                           data.CloseProfit + data.PositionProfit + data.CashIn -
+                           data.Commission)
     
         # 推送
         self.gateway.onAccount(account)
@@ -830,30 +830,30 @@ class CtpTdApi:
         contract = VtContractData()
         contract.gatewayName = self.gatewayName
 
-        contract.symbol = data['InstrumentID']
-        contract.exchange = exchangeMapReverse[data['ExchangeID']]
+        contract.symbol = data.InstrumentID
+        contract.exchange = exchangeMapReverse[data.ExchangeID]
         contract.vtSymbol = contract.symbol #'.'.join([contract.symbol, contract.exchange])
-        contract.name = data['InstrumentName'].decode('GBK')
+        contract.name = data.InstrumentName.decode('GBK')
 
         # 合约数值
-        contract.size = data['VolumeMultiple']
-        contract.priceTick = data['PriceTick']
-        contract.strikePrice = data['StrikePrice']
-        contract.productClass = productClassMapReverse.get(data['ProductClass'], PRODUCT_UNKNOWN)
-        contract.expiryDate = data['ExpireDate']
+        contract.size = data.VolumeMultiple
+        contract.priceTick = data.PriceTick
+        contract.strikePrice = data.StrikePrice
+        contract.productClass = productClassMapReverse.get(data.ProductClass, PRODUCT_UNKNOWN)
+        contract.expiryDate = data.ExpireDate
         
         # ETF期权的标的命名方式需要调整（ETF代码 + 到期月份）
         if contract.exchange in [EXCHANGE_SSE, EXCHANGE_SZSE]:
-            contract.underlyingSymbol = '-'.join([data['UnderlyingInstrID'], str(data['ExpireDate'])[2:-2]])
+            contract.underlyingSymbol = '-'.join([data.UnderlyingInstrID, str(data.ExpireDate)[2:-2]])
         # 商品期权无需调整
         else:
-            contract.underlyingSymbol = data['UnderlyingInstrID']   
+            contract.underlyingSymbol = data.UnderlyingInstrID
         
         # 期权类型
         if contract.productClass is PRODUCT_OPTION:
-            if data['OptionsType'] == '1':
+            if data.OptionsType == '1':
                 contract.optionType = OPTION_CALL
-            elif data['OptionsType'] == '2':
+            elif data.OptionsType == '2':
                 contract.optionType = OPTION_PUT
 
         # 缓存代码和交易所的印射关系
@@ -1019,15 +1019,15 @@ class CtpTdApi:
         """错误回报"""
         err = VtErrorData()
         err.gatewayName = self.gatewayName
-        err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorID = error.ErrorID
+        err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
         
     #----------------------------------------------------------------------
     def onRtnOrder(self, data):
         """报单回报"""
         # 更新最大报单编号
-        newref = data['OrderRef']
+        newref = data.OrderRef
         self.orderRef = max(self.orderRef, int(newref))
         
         # 创建报单数据对象
@@ -1035,29 +1035,29 @@ class CtpTdApi:
         order.gatewayName = self.gatewayName
         
         # 保存代码和报单号
-        order.symbol = data['InstrumentID']
-        order.exchange = exchangeMapReverse[data['ExchangeID']]
+        order.symbol = data.InstrumentID
+        order.exchange = exchangeMapReverse[data.ExchangeID]
         order.vtSymbol = order.symbol #'.'.join([order.symbol, order.exchange])
         
-        order.orderID = data['OrderRef']
+        order.orderID = data.OrderRef
         # CTP的报单号一致性维护需要基于frontID, sessionID, orderID三个字段
         # 但在本接口设计中，已经考虑了CTP的OrderRef的自增性，避免重复
         # 唯一可能出现OrderRef重复的情况是多处登录并在非常接近的时间内（几乎同时发单）
         # 考虑到VtTrader的应用场景，认为以上情况不会构成问题
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])        
         
-        order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
-        order.offset = offsetMapReverse.get(data['CombOffsetFlag'], OFFSET_UNKNOWN)
-        order.status = statusMapReverse.get(data['OrderStatus'], STATUS_UNKNOWN)            
+        order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
+        order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
+        order.status = statusMapReverse.get(data.OrderStatus, STATUS_UNKNOWN)
             
         # 价格、报单量等数值
-        order.price = data['LimitPrice']
-        order.totalVolume = data['VolumeTotalOriginal']
-        order.tradedVolume = data['VolumeTraded']
-        order.orderTime = data['InsertTime']
-        order.cancelTime = data['CancelTime']
-        order.frontID = data['FrontID']
-        order.sessionID = data['SessionID']
+        order.price = data.LimitPrice
+        order.totalVolume = data.VolumeTotalOriginal
+        order.tradedVolume = data.VolumeTraded
+        order.orderTime = data.InsertTime
+        order.cancelTime = data.CancelTime
+        order.frontID = data.FrontID
+        order.sessionID = data.SessionID
         
         # 推送
         self.gateway.onOrder(order)
@@ -1070,26 +1070,26 @@ class CtpTdApi:
         trade.gatewayName = self.gatewayName
         
         # 保存代码和报单号
-        trade.symbol = data['InstrumentID']
-        trade.exchange = exchangeMapReverse[data['ExchangeID']]
+        trade.symbol = data.InstrumentID
+        trade.exchange = exchangeMapReverse[data.ExchangeID]
         trade.vtSymbol = trade.symbol #'.'.join([trade.symbol, trade.exchange])
         
-        trade.tradeID = data['TradeID']
+        trade.tradeID = data.TradeID
         trade.vtTradeID = '.'.join([self.gatewayName, trade.tradeID])
         
-        trade.orderID = data['OrderRef']
+        trade.orderID = data.OrderRef
         trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
         
         # 方向
-        trade.direction = directionMapReverse.get(data['Direction'], '')
+        trade.direction = directionMapReverse.get(data.Direction, '')
             
         # 开平
-        trade.offset = offsetMapReverse.get(data['OffsetFlag'], '')
+        trade.offset = offsetMapReverse.get(data.OffsetFlag, '')
             
         # 价格、报单量等数值
-        trade.price = data['Price']
-        trade.volume = data['Volume']
-        trade.tradeTime = data['TradeTime']
+        trade.price = data.Price
+        trade.volume = data.Volume
+        trade.tradeTime = data.TradeTime
         
         # 推送
         self.gateway.onTrade(trade)
@@ -1100,23 +1100,23 @@ class CtpTdApi:
         # 推送委托信息
         order = VtOrderData()
         order.gatewayName = self.gatewayName
-        order.symbol = data['InstrumentID']
-        order.exchange = exchangeMapReverse[data['ExchangeID']]
+        order.symbol = data.InstrumentID
+        order.exchange = exchangeMapReverse[data.ExchangeID]
         order.vtSymbol = order.symbol
-        order.orderID = data['OrderRef']
+        order.orderID = data.OrderRef
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])        
-        order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
-        order.offset = offsetMapReverse.get(data['CombOffsetFlag'], OFFSET_UNKNOWN)
+        order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
+        order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
-        order.price = data['LimitPrice']
-        order.totalVolume = data['VolumeTotalOriginal']
+        order.price = data.LimitPrice
+        order.totalVolume = data.VolumeTotalOriginal
         self.gateway.onOrder(order)
     
         # 推送错误信息        
         err = VtErrorData()
         err.gatewayName = self.gatewayName
-        err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorID = error.ErrorID
+        err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
         
     #----------------------------------------------------------------------
@@ -1124,8 +1124,8 @@ class CtpTdApi:
         """撤单错误回报（交易所）"""
         err = VtErrorData()
         err.gatewayName = self.gatewayName
-        err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorID = error.ErrorID
+        err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
         
     #----------------------------------------------------------------------
