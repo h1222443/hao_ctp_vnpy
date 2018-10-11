@@ -76,6 +76,7 @@ class MainEngine(object):
             'gatewayType': gatewayModule.gatewayType
         }
         self.gatewayDetailList.append(d)
+        print(self.gatewayDict)
         
     #----------------------------------------------------------------------
     def addApp(self, appModule):
@@ -101,8 +102,11 @@ class MainEngine(object):
     def getGateway(self, gatewayName):
         """获取接口"""
         if gatewayName in self.gatewayDict:
+            print(self.gatewayDict[gatewayName])
             return self.gatewayDict[gatewayName]
+
         else:
+
             self.writeLog(text.GATEWAY_NOT_EXIST.format(gateway=gatewayName))
             return None
         

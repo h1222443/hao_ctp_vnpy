@@ -49,9 +49,6 @@ def main():
     # 添加交易接口
     me.addGateway(ctpGateway)
 
-
-
-
     # 添加上层应用
     me.addApp(riskManager)
     me.addApp(ctaStrategy)

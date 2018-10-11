@@ -722,7 +722,7 @@ class CtpTdApi:
             return
 
         # 获取持仓缓存对象
-        posName = '.'.join([data.InstrumentID, data.PosiDirection])
+        posName = '.'.join([data.InstrumentID.decode('utf8'), data.PosiDirection.decode('utf8')])
         print(posName)
         if posName in self.posDict:
             pos = self.posDict[posName]
@@ -731,7 +731,7 @@ class CtpTdApi:
             self.posDict[posName] = pos
 
             pos.gatewayName = self.gatewayName
-            pos.symbol = data.InstrumentID
+            pos.symbol = data.InstrumentID.decode('utf8')
             pos.vtSymbol = pos.symbol
             pos.direction = posiDirectionMapReverse.get(data.PosiDirection, '')
             pos.vtPositionName = '.'.join([pos.vtSymbol, pos.direction])
@@ -778,11 +778,12 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def onRspQryTradingAccount(self, data, error, n, last):
         """资金账户查询回报"""
+
         account = VtAccountData()
         account.gatewayName = self.gatewayName
 
         # 账户代码
-        account.accountID = data.AccountID
+        account.accountID = data.AccountID.decode('utf8')
         account.vtAccountID = '.'.join([self.gatewayName, account.accountID])
 
         # 数值相关
