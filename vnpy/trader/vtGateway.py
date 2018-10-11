@@ -104,9 +104,9 @@ class VtGateway(object):
     def onContract(self, contract):
         """合约基础信息推送"""
         # 通用事件
-        event1 = Event(type_=EVENT_CONTRACT)
+        event1 = Event(EVENT_CONTRACT)
         event1.dict_['data'] = contract
-        self.eventEngine.put(event1)        
+        self.eventEngine.put(event1)
     
     #----------------------------------------------------------------------
     def onHistory(self, history):

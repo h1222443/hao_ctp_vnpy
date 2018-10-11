@@ -6,7 +6,7 @@ vn.ctp的gateway接入
 考虑到现阶段大部分CTP中的ExchangeID字段返回的都是空值
 vtSymbol直接使用symbol
 '''
-
+from vnpy.event import *
 
 import os
 import json
@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from vnpy.trader.vtGateway import *
 from vnpy.trader.vtFunction import getJsonPath, getTempPath
 from vnpy.trader.vtConstant import GATEWAYTYPE_FUTURES
-from language import text
+from .language import text
 from vnpy.api.ctp.ctp_data_type import defineDict
 
 import sys
@@ -110,9 +110,9 @@ class CtpGateway(VtGateway):
         self.qryEnabled = False         # 循环查询
         
         self.fileName = self.gatewayName + '_connect.json'
-        self.filePath = getJsonPath(self.fileName, __file__)        
-        
-    #----------------------------------------------------------------------
+        self.filePath = getJsonPath(self.fileName, __file__)
+
+
     def connect(self):
         """连接"""
         try:
@@ -263,9 +263,7 @@ class CtpMdApi:
         """服务器连接"""
         print('connected')
         self.connectionStatus = True
-        
-
-        
+        self.writeLog(text.DATA_SERVER_CONNECTED)
         self.login()
     
     #----------------------------------------------------------------------  
@@ -275,7 +273,7 @@ class CtpMdApi:
         self.loginStatus = False
         self.gateway.mdConnected = False
         
-
+        self.writeLog(text.DATA_SERVER_DISCONNECTED)
         
     #---------------------------------------------------------------------- 
     def onHeartBeatWarning(self, n):
@@ -299,7 +297,8 @@ class CtpMdApi:
         if error.ErrorID == 0:
             self.loginStatus = True
             self.gateway.mdConnected = True
-            
+
+            self.writeLog(text.DATA_SERVER_LOGIN)
 
             
             # 重新订阅之前订阅的合约
@@ -322,7 +321,7 @@ class CtpMdApi:
             self.loginStatus = False
             self.gateway.mdConnected = False
             
-
+            self.writeLog(text.DATA_SERVER_LOGOUT)
                 
         # 否则，推送错误信息
         else:
@@ -447,10 +446,21 @@ class CtpMdApi:
         """登录"""
         # 如果填入了用户名密码等，则登录
         if self.userID and self.password and self.brokerID:
+            req = {}
+            req['UserID'] = self.userID
+            req['Password'] = self.password
+            req['BrokerID'] = self.brokerID
 
-            self.MDAPI.ReqUserLogin(UserID=self.userID,Password=self.password,BrokerID=self.brokerID)
+            self.MDAPI.ReqUserLogin(**req)
 
+    def close(self):
+        self.exit()
 
+    def writeLog(self,content):
+        log = VtLogData()
+        log.gatewayName = self.gatewayName
+        log.logContent = content
+        self.gateway.onLog(log)
 
     #----------------------------------------------------------------------
 
@@ -494,9 +504,9 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def onFrontConnected(self):
         """服务器连接"""
+
         self.connectionStatus = True
-
-
+        self.writeLog(text.TRADING_SERVER_CONNECTED)
 
         if self.requireAuthentication:
             self.authenticate()
@@ -510,7 +520,7 @@ class CtpTdApi:
         self.loginStatus = False
         self.gateway.tdConnected = False
 
-
+        self.writeLog(text.TRADING_SERVER_DISCONNECTED)
 
     #----------------------------------------------------------------------
     def onHeartBeatWarning(self, n):
@@ -520,17 +530,17 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def onRspAuthenticate(self, data, error, n, last):
         """验证客户端回报"""
-        if error['ErrorID'] == 0:
+        if error.ErrorID == 0:
             self.authStatus = True
 
-
+            self.writeLog(text.TRADING_SERVER_AUTHENTICATED)
 
             self.login()
         else:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
+            err.errorID = error.ErrorID
+            err.errorMsg = error.ErrorMsg.decode('gbk')
             self.gateway.onError(err)
 
     #----------------------------------------------------------------------
@@ -543,6 +553,7 @@ class CtpTdApi:
             self.loginStatus = True
             self.gateway.tdConnected = True
 
+            self.writeLog(text.TRADING_SERVER_LOGIN)
 
 
             # 确认结算信息
@@ -556,9 +567,9 @@ class CtpTdApi:
         else:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
-            err.errorID = error['ErrorID']
-            err.errorMsg = error['ErrorMsg'].decode('gbk')
-            self.gateway.onError(err)
+            err.errorID = error.ErrorID
+            err.errorMsg = error.ErrorMsg.decode('gbk')
+            print(err.errorMsg)
 
             # 标识登录失败，防止用错误信息连续重复登录
             self.loginFailed =  True
@@ -571,7 +582,7 @@ class CtpTdApi:
             self.loginStatus = False
             self.gateway.tdConnected = False
 
-
+            self.writeLog(text.TRADING_SERVER_LOGOUT)
 
         # 否则，推送错误信息
         else:
@@ -597,23 +608,23 @@ class CtpTdApi:
         # 推送委托信息
         order = VtOrderData()
         order.gatewayName = self.gatewayName
-        order.symbol = data['InstrumentID']
-        order.exchange = exchangeMapReverse[data['ExchangeID']]
+        order.symbol = data.InstrumentID
+        order.exchange = exchangeMapReverse[data.ExchangeID]
         order.vtSymbol = order.symbol
-        order.orderID = data['OrderRef']
+        order.orderID = data.OrderRef
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
-        order.direction = directionMapReverse.get(data['Direction'], DIRECTION_UNKNOWN)
-        order.offset = offsetMapReverse.get(data['CombOffsetFlag'], OFFSET_UNKNOWN)
+        order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
+        order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
-        order.price = data['LimitPrice']
-        order.totalVolume = data['VolumeTotalOriginal']
+        order.price = data.LimitPrice
+        order.totalVolume = data.VolumeTotalOriginal
         self.gateway.onOrder(order)
 
         # 推送错误信息
         err = VtErrorData()
         err.gatewayName = self.gatewayName
-        err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorID = error.ErrorID
+        err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
 
     #----------------------------------------------------------------------
@@ -631,8 +642,8 @@ class CtpTdApi:
         """撤单错误（柜台）"""
         err = VtErrorData()
         err.gatewayName = self.gatewayName
-        err.errorID = error['ErrorID']
-        err.errorMsg = error['ErrorMsg'].decode('gbk')
+        err.errorID = error.ErrorID
+        err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
 
     #----------------------------------------------------------------------
@@ -644,7 +655,7 @@ class CtpTdApi:
     def onRspSettlementInfoConfirm(self, data, error, n, last):
         """确认结算信息回报"""
 
-
+        self.writeLog(text.SETTLEMENT_INFO_CONFIRMED)
         # 查询合约代码
         self.reqID += 1
         self.TDAPI.ReqQryInstrument()
@@ -707,11 +718,12 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def onRspQryInvestorPosition(self, data, error, n, last):
         """持仓查询回报"""
-        if not data['InstrumentID']:
+        if not data.InstrumentID:
             return
 
         # 获取持仓缓存对象
         posName = '.'.join([data.InstrumentID, data.PosiDirection])
+        print(posName)
         if posName in self.posDict:
             pos = self.posDict[posName]
         else:
@@ -827,7 +839,7 @@ class CtpTdApi:
         contract.gatewayName = self.gatewayName
 
         contract.symbol = data.InstrumentID
-        contract.exchange = exchangeMapReverse[data.ExchangeID]
+        contract.exchange = data.ExchangeID
         contract.vtSymbol = contract.symbol #'.'.join([contract.symbol, contract.exchange])
         contract.name = data.InstrumentName.decode('GBK')
 
@@ -857,6 +869,7 @@ class CtpTdApi:
         self.symbolSizeDict[contract.symbol] = contract.size
 
         # 推送
+
         self.gateway.onContract(contract)
 
         # 缓存合约代码和交易所映射
@@ -1369,12 +1382,21 @@ class CtpTdApi:
 
             self.TDAPI.OnFrontConnected = self.onFrontConnected
             self.TDAPI.OnFrontDisconnected = self.onFrontDisconnected
-            self.TDAPI.OnRspUserLogin = self.onRspUserLogin
-            self.TDAPI.OnRspSettlementInfoConfirm = self.onRspSettlementInfoConfirm
             self.TDAPI.OnRspAuthenticate = self.onRspAuthenticate
-            self.TDAPI.OnRtnInstrumentStatus = self.onRtnInstrumentStatus
+            self.TDAPI.OnRspUserLogin = self.onRspUserLogin
+            self.TDAPI.OnRspUserLogout = self.onRspUserLogout
             self.TDAPI.OnRspOrderInsert = self.onRspOrderInsert
+            self.TDAPI.OnRspOrderAction = self.onRspOrderAction
+            self.TDAPI.OnRspSettlementInfoConfirm = self.onRspSettlementInfoConfirm
+            self.TDAPI.OnRspQryInvestorPosition = self.onRspQryInvestorPosition
+            self.TDAPI.OnRspQryTradingAccount = self.onRspQryTradingAccount
+            self.TDAPI.OnRspQryInstrument = self.onRspQryInstrument
+            self.TDAPI.OnRspError = self.onRspError
             self.TDAPI.OnRtnOrder = self.onRtnOrder
+            self.TDAPI.OnRtnTrade = self.onRtnTrade
+            self.TDAPI.OnErrRtnOrderInsert = self.onErrRtnOrderInsert
+            self.TDAPI.OnErrRtnOrderAction = self.onErrRtnOrderAction
+
 
             # _thread.start_new_thread(self.Qry, ())
             self.TDAPI.RegCB()
@@ -1401,9 +1423,12 @@ class CtpTdApi:
 
         # 如果填入了用户名密码等，则登录
         if self.userID and self.password and self.brokerID:
+            req = {}
+            req['UserID'] = self.userID
+            req['Password'] = self.password
+            req['BrokerID'] = self.brokerID
 
-            self.TDAPI.ReqUserLogin(UserID=self.userID,Password=self.password,BrokerID=self.brokerID)
-
+            self.TDAPI.ReqUserLogin(**req)
     #----------------------------------------------------------------------
     def authenticate(self):
         """申请验证"""
@@ -1414,13 +1439,13 @@ class CtpTdApi:
             req['AuthCode'] = self.authCode
             req['UserProductInfo'] = self.userProductInfo
             self.reqID +=1
-            self.TDAPI.ReqAuthenticate(UserID=self.userID,BrokerID=self.brokerID,UserProductInfo=self.userProductInfo,AuthCode=self.authCode)
+            self.TDAPI.ReqAuthenticate(**req)
 
     #----------------------------------------------------------------------
     def qryAccount(self):
         """查询账户"""
         self.reqID += 1
-        self.TDAPI.ReqQryTradingAccount(self.reqID)
+        self.TDAPI.ReqQryTradingAccount()
 
     #----------------------------------------------------------------------
     def qryPosition(self):
@@ -1493,16 +1518,17 @@ class CtpTdApi:
 
         self.TDAPI.ReqOrderAction(**req)
 
+    def close(self):
+        self.exit()
 
+    def writeLog(self,content):
+        log = VtLogData()
+        log.gatewayName = self.gatewayName
+        log.logContent = content
+        self.gateway.onLog(log)
 
     #----------------------------------------------------------------------
 
 
 
 
-if __name__ == '__main__':
-    Ex = CtpGateway(EventEngine)
-    Ex.connect()
-    input()
-
-    

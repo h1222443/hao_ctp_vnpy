@@ -537,16 +537,16 @@ class DataEngine(object):
     #----------------------------------------------------------------------
     def saveContracts(self):
         """保存所有合约对象到硬盘"""
-        with shelve.open(self.contractFilePath) as f:
-            f['data'] = self.contractDict
+        f = shelve.open(self.contractFilePath)
+        f['data'] = self.contractDict
         f.close()
     
     #----------------------------------------------------------------------
     def loadContracts(self):
         """从硬盘读取合约对象"""
-        with shelve.open(self.contractFilePath) as f:
-            if 'data' in f:
-                d = f['data']
+        f = shelve.open(self.contractFilePath)
+        if 'data' in f:
+            d = f['data']
             for key, value in d.items():
                 self.contractDict[key] = value
         f.close()
