@@ -351,7 +351,7 @@ class CtpMdApi:
     def onRtnDepthMarketData(self, data):
         """行情推送"""
         # 过滤尚未获取合约交易所时的行情推送
-        symbol = data.InstrumentID
+        symbol = data.InstrumentID.decode('utf8')
         if symbol not in symbolExchangeDict:
             return
         
@@ -578,7 +578,7 @@ class CtpTdApi:
     def onRspUserLogout(self, data, error, n, last):
         """登出回报"""
         # 如果登出成功，推送日志信息
-        if error['ErrorID'] == 0:
+        if error.ErrorID == 0:
             self.loginStatus = False
             self.gateway.tdConnected = False
 
@@ -839,7 +839,7 @@ class CtpTdApi:
         contract = VtContractData()
         contract.gatewayName = self.gatewayName
 
-        contract.symbol = data.InstrumentID
+        contract.symbol = data.InstrumentID.decode('utf8')
         contract.exchange = data.ExchangeID
         contract.vtSymbol = contract.symbol #'.'.join([contract.symbol, contract.exchange])
         contract.name = data.InstrumentName.decode('GBK')
