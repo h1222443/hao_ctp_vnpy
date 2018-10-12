@@ -251,7 +251,7 @@ class CtpMdApi:
         self.connectionStatus = False       # 连接状态
         self.loginStatus = False            # 登录状态
         
-        self.subscribedSymbols = set()      # 已订阅合约代码        
+        self.subscribedSymbols = set()      # 已订阅合约代码
         
         self.userID = EMPTY_STRING          # 账号
         self.password = EMPTY_STRING        # 密码
@@ -265,6 +265,7 @@ class CtpMdApi:
         self.connectionStatus = True
         self.writeLog(text.DATA_SERVER_CONNECTED)
         self.login()
+
     
     #----------------------------------------------------------------------  
     def onFrontDisconnected(self, n):
@@ -303,6 +304,7 @@ class CtpMdApi:
             
             # 重新订阅之前订阅的合约
             for subscribeReq in self.subscribedSymbols:
+
                 self.subscribe(subscribeReq)
                 
         # 否则，推送错误信息
@@ -334,7 +336,7 @@ class CtpMdApi:
     #----------------------------------------------------------------------  
     def onRspSubMarketData(self, data, error, n, last):
         """订阅合约回报"""
-        if 'ErrorID' in error and error.ErrorID:
+        if 'ErrorID' == error.ErrorID and error.ErrorID:
             err = VtErrorData()
             err.gatewayName = self.gatewayName
             err.errorID = error.ErrorID
@@ -350,46 +352,49 @@ class CtpMdApi:
     #----------------------------------------------------------------------  
     def onRtnDepthMarketData(self, data):
         """行情推送"""
+
         # 过滤尚未获取合约交易所时的行情推送
         symbol = data.InstrumentID.decode('utf8')
         if symbol not in symbolExchangeDict:
             return
-        
+
         # 创建对象
         tick = VtTickData()
         tick.gatewayName = self.gatewayName
-        
+
         tick.symbol = symbol
         tick.exchange = symbolExchangeDict[tick.symbol]
         tick.vtSymbol = tick.symbol #'.'.join([tick.symbol, tick.exchange])
-        
+
         tick.lastPrice = data.LastPrice
         tick.volume = data.Volume
         tick.openInterest = data.OpenInterest
-        tick.time = '.'.join([data.UpdateTime, str(data.UpdateMillisec/100)])
-        
+        tick.time = '.'.join([data.UpdateTime.decode('utf8'), str(data.UpdateMillisec/100)])
+
         # 上期所和郑商所可以直接使用，大商所需要转换
-        tick.date = data.ActionDay
-        
+        tick.date = data.ActionDay.decode('utf8')
+
         tick.openPrice = data.OpenPrice
         tick.highPrice = data.HighestPrice
         tick.lowPrice = data.LowestPrice
         tick.preClosePrice = data.PreClosePrice
-        
+
         tick.upperLimit = data.UpperLimitPrice
         tick.lowerLimit = data.LowerLimitPrice
-        
+
         # CTP只有一档行情
         tick.bidPrice1 = data.BidPrice1
         tick.bidVolume1 = data.BidVolume1
         tick.askPrice1 = data.AskPrice1
         tick.askVolume1 = data.AskVolume1
-        
+
         # 大商所日期转换
         if tick.exchange is EXCHANGE_DCE:
             tick.date = datetime.now().strftime('%Y%m%d')
-        
+
         self.gateway.onTick(tick)
+        print(tick.time,type(tick.time))
+        print(tick.date,type(tick.date))
         
     #---------------------------------------------------------------------- 
     def onRspSubForQuoteRsp(self, data, error, n, last):
@@ -420,9 +425,15 @@ class CtpMdApi:
             self.MDAPI.CreateApi()
             spi = self.MDAPI.CreateSpi()
             self.MDAPI.RegisterSpi(spi)
+
             self.MDAPI.OnFrontConnected = self.onFrontConnected
+            self.MDAPI.OnFrontDisconnected = self.onFrontDisconnected
+            self.MDAPI.OnRspError = self.onRspError
             self.MDAPI.OnRspUserLogin = self.onRspUserLogin
+            self.MDAPI.OnRspUserLogout = self.onRspUserLogout
+            self.MDAPI.OnRspSubMarketData = self.onRspSubMarketData
             self.MDAPI.OnRtnDepthMarketData = self.onRtnDepthMarketData
+
             self.MDAPI.RegCB()
             self.MDAPI.RegisterFront(self.address)
             self.MDAPI.Init()
@@ -435,10 +446,13 @@ class CtpMdApi:
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq):
         """订阅合约"""
+
         # 这里的设计是，如果尚未登录就调用了订阅方法
         # 则先保存订阅请求，登录完成后会自动订阅
         if self.loginStatus:
-            self.MDAPI.SubscribeMarketData(str(subscribeReq.symbol))
+
+            self.MDAPI.SubscribeMarketData(subscribeReq.symbol)
+
         self.subscribedSymbols.add(subscribeReq)   
         
     #----------------------------------------------------------------------
@@ -723,7 +737,7 @@ class CtpTdApi:
 
         # 获取持仓缓存对象
         posName = '.'.join([data.InstrumentID.decode('utf8'), data.PosiDirection.decode('utf8')])
-        print(posName)
+
         if posName in self.posDict:
             pos = self.posDict[posName]
         else:
@@ -733,7 +747,7 @@ class CtpTdApi:
             pos.gatewayName = self.gatewayName
             pos.symbol = data.InstrumentID.decode('utf8')
             pos.vtSymbol = pos.symbol
-            pos.direction = posiDirectionMapReverse.get(data.PosiDirection, '')
+            pos.direction = posiDirectionMapReverse.get(data.PosiDirection.decode('utf8'), '')
             pos.vtPositionName = '.'.join([pos.vtSymbol, pos.direction])
 
         exchange = self.symbolExchangeDict.get(pos.symbol, EXCHANGE_UNKNOWN)

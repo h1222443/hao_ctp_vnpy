@@ -23,6 +23,7 @@ class VtGateway(object):
     def onTick(self, tick):
         """市场行情推送"""
         # 通用事件
+
         event1 = Event(type_=EVENT_TICK)
         event1.dict_['data'] = tick
         self.eventEngine.put(event1)
