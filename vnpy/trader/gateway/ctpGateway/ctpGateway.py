@@ -21,7 +21,7 @@ from vnpy.api.ctp.ctp_data_type import defineDict
 import sys
 import platform
 sys.path.append(os.path.join(sys.path[0], '..'))  # 调用父目录下的模块
-import py_ctp.ctp_struct as ctp
+from py_ctp.ctp_struct import *
 from py_ctp.ctp_quote import Quote
 from py_ctp.ctp_trade import Trade
 import _thread
@@ -393,8 +393,7 @@ class CtpMdApi:
             tick.date = datetime.now().strftime('%Y%m%d')
 
         self.gateway.onTick(tick)
-        print(tick.time,type(tick.time))
-        print(tick.date,type(tick.date))
+
         
     #---------------------------------------------------------------------- 
     def onRspSubForQuoteRsp(self, data, error, n, last):
@@ -1513,6 +1512,8 @@ class CtpTdApi:
         # 返回订单号（字符串），便于某些算法进行动态管理
         vtOrderID = '.'.join([self.gatewayName, str(self.orderRef)])
         return vtOrderID
+
+
 
     #----------------------------------------------------------------------
     def cancelOrder(self, cancelOrderReq):
