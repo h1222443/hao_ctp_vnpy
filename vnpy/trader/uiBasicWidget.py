@@ -1032,6 +1032,7 @@ class TradingWidget(QtWidgets.QFrame):
 
     #----------------------------------------------------------------------
     def sendOrder(self):
+
         """发单"""
         symbol = str(self.lineSymbol.text())
         vtSymbol = symbol

@@ -31,22 +31,22 @@ from time import sleep
 # 以下为一些VT类型和CTP类型的映射字典
 # 价格类型映射
 priceTypeMap = {}
-priceTypeMap[PRICETYPE_LIMITPRICE] = defineDict["THOST_FTDC_OPT_LimitPrice"]
-priceTypeMap[PRICETYPE_MARKETPRICE] = defineDict["THOST_FTDC_OPT_AnyPrice"]
+priceTypeMap[PRICETYPE_LIMITPRICE] = OrderPriceTypeType.LimitPrice
+priceTypeMap[PRICETYPE_MARKETPRICE] = OrderPriceTypeType.AnyPrice
 priceTypeMapReverse = {v: k for k, v in priceTypeMap.items()} 
 
 # 方向类型映射
 directionMap = {}
-directionMap[DIRECTION_LONG] = defineDict['THOST_FTDC_D_Buy']
-directionMap[DIRECTION_SHORT] = defineDict['THOST_FTDC_D_Sell']
+directionMap[DIRECTION_LONG] = DirectionType.Buy
+directionMap[DIRECTION_SHORT] = DirectionType.Sell
 directionMapReverse = {v: k for k, v in directionMap.items()}
 
 # 开平类型映射
 offsetMap = {}
-offsetMap[OFFSET_OPEN] = defineDict['THOST_FTDC_OF_Open']
-offsetMap[OFFSET_CLOSE] = defineDict['THOST_FTDC_OF_Close']
-offsetMap[OFFSET_CLOSETODAY] = defineDict['THOST_FTDC_OF_CloseToday']
-offsetMap[OFFSET_CLOSEYESTERDAY] = defineDict['THOST_FTDC_OF_CloseYesterday']
+offsetMap[OFFSET_OPEN] = OffsetFlagType.Open.__char__()
+offsetMap[OFFSET_CLOSE] = OffsetFlagType.Close.__char__()
+offsetMap[OFFSET_CLOSETODAY] = OffsetFlagType.CloseToday.__char__()
+offsetMap[OFFSET_CLOSEYESTERDAY] = OffsetFlagType.CloseYesterday.__char__()
 offsetMapReverse = {v:k for k,v in offsetMap.items()}
 
 # 交易所类型映射
@@ -63,26 +63,26 @@ exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
 
 # 持仓类型映射
 posiDirectionMap = {}
-posiDirectionMap[DIRECTION_NET] = defineDict["THOST_FTDC_PD_Net"]
-posiDirectionMap[DIRECTION_LONG] = defineDict["THOST_FTDC_PD_Long"]
-posiDirectionMap[DIRECTION_SHORT] = defineDict["THOST_FTDC_PD_Short"]
+posiDirectionMap[DIRECTION_NET] = PosiDirectionType.Net
+posiDirectionMap[DIRECTION_LONG] = PosiDirectionType.Long
+posiDirectionMap[DIRECTION_SHORT] = PosiDirectionType.Short
 posiDirectionMapReverse = {v:k for k,v in posiDirectionMap.items()}
 
 # 产品类型映射
 productClassMap = {}
-productClassMap[PRODUCT_FUTURES] = defineDict["THOST_FTDC_PC_Futures"]
-productClassMap[PRODUCT_OPTION] = defineDict["THOST_FTDC_PC_Options"]
-productClassMap[PRODUCT_COMBINATION] = defineDict["THOST_FTDC_PC_Combination"]
+productClassMap[PRODUCT_FUTURES] = ProductClassType.Futures
+productClassMap[PRODUCT_OPTION] = ProductClassType.Options
+productClassMap[PRODUCT_COMBINATION] = ProductClassType.Combination
 productClassMapReverse = {v:k for k,v in productClassMap.items()}
 productClassMapReverse[defineDict["THOST_FTDC_PC_ETFOption"]] = PRODUCT_OPTION
 productClassMapReverse[defineDict["THOST_FTDC_PC_Stock"]] = PRODUCT_EQUITY
 
 # 委托状态映射
 statusMap = {}
-statusMap[STATUS_ALLTRADED] = defineDict["THOST_FTDC_OST_AllTraded"]
-statusMap[STATUS_PARTTRADED] = defineDict["THOST_FTDC_OST_PartTradedQueueing"]
-statusMap[STATUS_NOTTRADED] = defineDict["THOST_FTDC_OST_NoTradeQueueing"]
-statusMap[STATUS_CANCELLED] = defineDict["THOST_FTDC_OST_Canceled"]
+statusMap[STATUS_ALLTRADED] = OrderStatusType.AllTraded.__char__()
+statusMap[STATUS_PARTTRADED] = OrderStatusType.PartTradedQueueing.__char__()
+statusMap[STATUS_NOTTRADED] = OrderStatusType.NoTradeQueueing.__char__()
+statusMap[STATUS_CANCELLED] = OrderStatusType.Canceled.__char__()
 statusMapReverse = {v:k for k,v in statusMap.items()}
 
 # 全局字典, key:symbol, value:exchange
@@ -622,10 +622,10 @@ class CtpTdApi:
         order = VtOrderData()
         order.gatewayName = self.gatewayName
         order.symbol = data.InstrumentID
-        order.exchange = exchangeMapReverse[data.ExchangeID]
+        order.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         order.vtSymbol = order.symbol
         order.orderID = data.OrderRef
-        order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
+        order.vtOrderID = '.'.join([self.gatewayName, order.orderID.decode('utf8')])
         order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
@@ -1058,30 +1058,31 @@ class CtpTdApi:
         order.gatewayName = self.gatewayName
 
         # 保存代码和报单号
-        order.symbol = data.InstrumentID
-        order.exchange = exchangeMapReverse[data.ExchangeID]
+        order.symbol = data.InstrumentID.decode('utf8')
+        order.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         order.vtSymbol = order.symbol #'.'.join([order.symbol, order.exchange])
 
-        order.orderID = data.OrderRef
+        order.orderID = data.OrderRef.decode('utf8')
         # CTP的报单号一致性维护需要基于frontID, sessionID, orderID三个字段
         # 但在本接口设计中，已经考虑了CTP的OrderRef的自增性，避免重复
         # 唯一可能出现OrderRef重复的情况是多处登录并在非常接近的时间内（几乎同时发单）
         # 考虑到VtTrader的应用场景，认为以上情况不会构成问题
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
 
-        order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
-        order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
-        order.status = statusMapReverse.get(data.OrderStatus, STATUS_UNKNOWN)
+        order.direction = directionMapReverse.get(data.Direction.decode('utf8'), DIRECTION_UNKNOWN)
+        order.offset = offsetMapReverse.get(data.CombOffsetFlag.decode('utf8'), OFFSET_UNKNOWN)
+        order.status = statusMapReverse.get(data.OrderStatus.decode('utf8'), STATUS_UNKNOWN)
 
         # 价格、报单量等数值
         order.price = data.LimitPrice
         order.totalVolume = data.VolumeTotalOriginal
         order.tradedVolume = data.VolumeTraded
-        order.orderTime = data.InsertTime
-        order.cancelTime = data.CancelTime
+        order.orderTime = data.InsertTime.decode('utf8')
+        order.cancelTime = data.CancelTime.decode('utf8')
         order.frontID = data.FrontID
         order.sessionID = data.SessionID
-
+        print('hao')
+        print(data.OrderStatus)
         # 推送
         self.gateway.onOrder(order)
 
@@ -1093,15 +1094,15 @@ class CtpTdApi:
         trade.gatewayName = self.gatewayName
 
         # 保存代码和报单号
-        trade.symbol = data.InstrumentID
-        trade.exchange = exchangeMapReverse[data.ExchangeID]
+        trade.symbol = data.InstrumentID.decode('utf8')
+        trade.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         trade.vtSymbol = trade.symbol #'.'.join([trade.symbol, trade.exchange])
 
         trade.tradeID = data.TradeID
-        trade.vtTradeID = '.'.join([self.gatewayName, trade.tradeID])
+        trade.vtTradeID = '.'.join([self.gatewayName, trade.tradeID.decode('utf8')])
 
         trade.orderID = data.OrderRef
-        trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
+        trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID.decode('utf8')])
 
         # 方向
         trade.direction = directionMapReverse.get(data.Direction, '')
@@ -1124,10 +1125,10 @@ class CtpTdApi:
         order = VtOrderData()
         order.gatewayName = self.gatewayName
         order.symbol = data.InstrumentID
-        order.exchange = exchangeMapReverse[data.ExchangeID]
+        order.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         order.vtSymbol = order.symbol
         order.orderID = data.OrderRef
-        order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
+        order.vtOrderID = '.'.join([self.gatewayName, order.orderID.decode('utf8')])
         order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
@@ -1475,37 +1476,26 @@ class CtpTdApi:
 
         req = {}
 
+        req['BrokerID'] = self.brokerID
+        req['InvestorID'] = self.userID
         req['InstrumentID'] = orderReq.symbol
-        req['LimitPrice'] = orderReq.price
-        req['VolumeTotalOriginal'] = int(orderReq.volume)
-
-        # 下面如果由于传入的类型本接口不支持，则会返回空字符串
+        req['OrderRef'] = str(self.orderRef)
+        req['UserID'] = self.userID
         req['OrderPriceType'] = priceTypeMap.get(orderReq.priceType, '')
         req['Direction'] = directionMap.get(orderReq.direction, '')
         req['CombOffsetFlag'] = offsetMap.get(orderReq.offset, '')
-
-        req['OrderRef'] = str(self.orderRef)
-        req['InvestorID'] = self.userID
-        req['UserID'] = self.userID
-        req['BrokerID'] = self.brokerID
-
-        req['CombHedgeFlag'] = defineDict['THOST_FTDC_HF_Speculation']       # 投机单
-        req['ContingentCondition'] = defineDict['THOST_FTDC_CC_Immediately'] # 立即发单
-        req['ForceCloseReason'] = defineDict['THOST_FTDC_FCC_NotForceClose'] # 非强平
-        req['IsAutoSuspend'] = 0                                             # 非自动挂起
-        req['TimeCondition'] = defineDict['THOST_FTDC_TC_GFD']               # 今日有效
-        req['VolumeCondition'] = defineDict['THOST_FTDC_VC_AV']              # 任意成交量
-        req['MinVolume'] = 1                                                 # 最小成交量为1
-
-        # 判断FAK和FOK
-        if orderReq.priceType == PRICETYPE_FAK:
-            req['OrderPriceType'] = defineDict["THOST_FTDC_OPT_LimitPrice"]
-            req['TimeCondition'] = defineDict['THOST_FTDC_TC_IOC']
-            req['VolumeCondition'] = defineDict['THOST_FTDC_VC_AV']
-        if orderReq.priceType == PRICETYPE_FOK:
-            req['OrderPriceType'] = defineDict["THOST_FTDC_OPT_LimitPrice"]
-            req['TimeCondition'] = defineDict['THOST_FTDC_TC_IOC']
-            req['VolumeCondition'] = int(defineDict['THOST_FTDC_VC_CV'])
+        req['CombHedgeFlag'] = HedgeFlagEnType.Speculation.__char__()  # 投机单
+        req['LimitPrice'] = orderReq.price
+        req['VolumeTotalOriginal'] = int(orderReq.volume)
+        req['TimeCondition'] = TimeConditionType.GFD  # 今日有效
+        req['VolumeCondition'] = VolumeConditionType.AV  # 任意成交量
+        req['MinVolume'] = 1
+        req['ContingentCondition'] = ContingentConditionType.Immediately  # 立即发单
+        req['StopPrice'] = 0
+        req['ForceCloseReason'] = ForceCloseReasonType.NotForceClose  # 非强平
+        req['IsAutoSuspend'] = 0
+        req['IsSwapOrder'] = 0
+        req['UserForceClose'] = 0
 
         self.TDAPI.ReqOrderInsert(**req)
 
@@ -1528,7 +1518,7 @@ class CtpTdApi:
         req['FrontID'] = cancelOrderReq.frontID
         req['SessionID'] = cancelOrderReq.sessionID
 
-        req['ActionFlag'] = defineDict['THOST_FTDC_AF_Delete']
+        req['ActionFlag'] = ActionFlagType.Delete
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
 
