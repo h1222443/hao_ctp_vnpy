@@ -40,7 +40,15 @@ directionMap = {}
 directionMap[DIRECTION_LONG] = DirectionType.Buy
 directionMap[DIRECTION_SHORT] = DirectionType.Sell
 directionMapReverse = {v: k for k, v in directionMap.items()}
+print(directionMap)
+print(directionMapReverse)
 
+directionMap1 = {}
+directionMap1[DIRECTION_LONG] = DirectionType.Buy.__char__()
+directionMap1[DIRECTION_SHORT] = DirectionType.Sell.__char__()
+directionMapReverse1 = {v: k for k, v in directionMap1.items()}
+print(directionMap1)
+print(directionMapReverse1)
 # 开平类型映射
 offsetMap = {}
 offsetMap[OFFSET_OPEN] = OffsetFlagType.Open.__char__()
@@ -48,6 +56,7 @@ offsetMap[OFFSET_CLOSE] = OffsetFlagType.Close.__char__()
 offsetMap[OFFSET_CLOSETODAY] = OffsetFlagType.CloseToday.__char__()
 offsetMap[OFFSET_CLOSEYESTERDAY] = OffsetFlagType.CloseYesterday.__char__()
 offsetMapReverse = {v:k for k,v in offsetMap.items()}
+
 
 # 交易所类型映射
 exchangeMap = {}
@@ -63,9 +72,9 @@ exchangeMapReverse = {v:k for k,v in exchangeMap.items()}
 
 # 持仓类型映射
 posiDirectionMap = {}
-posiDirectionMap[DIRECTION_NET] = PosiDirectionType.Net
-posiDirectionMap[DIRECTION_LONG] = PosiDirectionType.Long
-posiDirectionMap[DIRECTION_SHORT] = PosiDirectionType.Short
+posiDirectionMap[DIRECTION_NET] = PosiDirectionType.Net.__char__()
+posiDirectionMap[DIRECTION_LONG] = PosiDirectionType.Long.__char__()
+posiDirectionMap[DIRECTION_SHORT] = PosiDirectionType.Short.__char__()
 posiDirectionMapReverse = {v:k for k,v in posiDirectionMap.items()}
 
 # 产品类型映射
@@ -788,6 +797,7 @@ class CtpTdApi:
             # 清空缓存
             self.posDict.clear()
 
+
     #----------------------------------------------------------------------
     def onRspQryTradingAccount(self, data, error, n, last):
         """资金账户查询回报"""
@@ -1069,7 +1079,7 @@ class CtpTdApi:
         # 考虑到VtTrader的应用场景，认为以上情况不会构成问题
         order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
 
-        order.direction = directionMapReverse.get(data.Direction.decode('utf8'), DIRECTION_UNKNOWN)
+        order.direction = directionMapReverse1.get(data.Direction.decode('utf8'), DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data.CombOffsetFlag.decode('utf8'), OFFSET_UNKNOWN)
         order.status = statusMapReverse.get(data.OrderStatus.decode('utf8'), STATUS_UNKNOWN)
 
