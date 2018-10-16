@@ -40,15 +40,13 @@ directionMap = {}
 directionMap[DIRECTION_LONG] = DirectionType.Buy
 directionMap[DIRECTION_SHORT] = DirectionType.Sell
 directionMapReverse = {v: k for k, v in directionMap.items()}
-print(directionMap)
-print(directionMapReverse)
+
 
 directionMap1 = {}
 directionMap1[DIRECTION_LONG] = DirectionType.Buy.__char__()
 directionMap1[DIRECTION_SHORT] = DirectionType.Sell.__char__()
 directionMapReverse1 = {v: k for k, v in directionMap1.items()}
-print(directionMap1)
-print(directionMapReverse1)
+
 # 开平类型映射
 offsetMap = {}
 offsetMap[OFFSET_OPEN] = OffsetFlagType.Open.__char__()
@@ -1108,22 +1106,22 @@ class CtpTdApi:
         trade.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         trade.vtSymbol = trade.symbol #'.'.join([trade.symbol, trade.exchange])
 
-        trade.tradeID = data.TradeID
-        trade.vtTradeID = '.'.join([self.gatewayName, trade.tradeID.decode('utf8')])
+        trade.tradeID = data.TradeID.decode('utf8')
+        trade.vtTradeID = '.'.join([self.gatewayName, trade.tradeID])
 
-        trade.orderID = data.OrderRef
-        trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID.decode('utf8')])
+        trade.orderID = data.OrderRef.decode('utf8')
+        trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
 
         # 方向
-        trade.direction = directionMapReverse.get(data.Direction, '')
+        trade.direction = directionMapReverse.get(data.Direction.decode('utf8'), '')
 
         # 开平
-        trade.offset = offsetMapReverse.get(data.OffsetFlag, '')
+        trade.offset = offsetMapReverse.get(data.OffsetFlag.decode('utf8'), '')
 
         # 价格、报单量等数值
         trade.price = data.Price
         trade.volume = data.Volume
-        trade.tradeTime = data.TradeTime
+        trade.tradeTime = data.TradeTime.decode('utf8')
 
         # 推送
         self.gateway.onTrade(trade)
