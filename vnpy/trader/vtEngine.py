@@ -544,7 +544,6 @@ class DataEngine(object):
     #----------------------------------------------------------------------
     def saveContracts(self):
         """保存所有合约对象到硬盘"""
-        print('haoweihua')
         f = shelve.open(self.contractFilePath)
         f['data'] = self.contractDict
 
