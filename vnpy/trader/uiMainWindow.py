@@ -263,7 +263,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                            vtText.CONFIRM_EXIT, QtWidgets.QMessageBox.Yes | 
                                            QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
 
-        if reply == QtWidgets.QMessageBox.Yes: 
+        if reply == QtWidgets.QMessageBox.Yes:
+
             for widget in self.widgetDict.values():
                 widget.close()
             self.saveWindowSettings('custom')

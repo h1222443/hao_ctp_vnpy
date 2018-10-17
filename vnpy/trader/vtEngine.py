@@ -173,17 +173,19 @@ class MainEngine(object):
     def exit(self):
         """退出程序前调用，保证正常退出"""        
         # 安全关闭所有接口
+
         for gateway in self.gatewayDict.values():        
             gateway.close()
-        
+
         # 停止事件引擎
         self.eventEngine.stop()
-        
+
         # 停止上层应用引擎
         for appEngine in self.appDict.values():
             appEngine.stop()
-        
+
         # 保存数据引擎里的合约数据到硬盘
+
         self.dataEngine.saveContracts()
     
     #----------------------------------------------------------------------
@@ -405,7 +407,6 @@ class DataEngine(object):
     """数据引擎"""
     contractFileName = 'ContractData.vt.bat'
     contractFilePath = getTempPath(contractFileName)
-    print(contractFilePath)
     FINISHED_STATUS = [STATUS_ALLTRADED, STATUS_REJECTED, STATUS_CANCELLED]
 
     #----------------------------------------------------------------------
@@ -430,6 +431,7 @@ class DataEngine(object):
         
         # 读取保存在硬盘的合约数据
         self.loadContracts()
+
         
         # 注册事件监听
         self.registerEvent()
@@ -542,6 +544,7 @@ class DataEngine(object):
     #----------------------------------------------------------------------
     def saveContracts(self):
         """保存所有合约对象到硬盘"""
+        print('haoweihua')
         f = shelve.open(self.contractFilePath)
         f['data'] = self.contractDict
 
@@ -552,7 +555,7 @@ class DataEngine(object):
         """从硬盘读取合约对象"""
         f = shelve.open(self.contractFilePath)
         if 'data' in f:
-            d = f['data']
+            d = f.get('data')
             for key, value in d.items():
                 self.contractDict[key] = value
         f.close()

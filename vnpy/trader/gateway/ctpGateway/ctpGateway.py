@@ -474,7 +474,7 @@ class CtpMdApi:
             self.MDAPI.ReqUserLogin(**req)
 
     def close(self):
-        self.exit()
+        pass
 
     def writeLog(self,content):
         log = VtLogData()
@@ -1472,14 +1472,12 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def qryAccount(self):
         """查询账户"""
-        print('123')
         self.reqID += 1
         self.TDAPI.ReqQryTradingAccount()
 
     #----------------------------------------------------------------------
     def qryPosition(self):
         """查询持仓"""
-        print('321')
         self.reqID += 1
         self.TDAPI.ReqQryInvestorPosition(BrokerID=self.brokerID,InvestorID=self.userID)
 
@@ -1540,7 +1538,7 @@ class CtpTdApi:
         self.TDAPI.ReqOrderAction(**req)
 
     def close(self):
-        self.exit()
+        pass
 
     def writeLog(self,content):
         log = VtLogData()
