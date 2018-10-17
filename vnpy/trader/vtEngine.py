@@ -102,7 +102,7 @@ class MainEngine(object):
     def getGateway(self, gatewayName):
         """获取接口"""
         if gatewayName in self.gatewayDict:
-            print(self.gatewayDict[gatewayName])
+
             return self.gatewayDict[gatewayName]
 
         else:
@@ -403,9 +403,9 @@ class MainEngine(object):
 ########################################################################
 class DataEngine(object):
     """数据引擎"""
-    contractFileName = 'ContractData.vt'
+    contractFileName = 'ContractData.vt.bat'
     contractFilePath = getTempPath(contractFileName)
-
+    print(contractFilePath)
     FINISHED_STATUS = [STATUS_ALLTRADED, STATUS_REJECTED, STATUS_CANCELLED]
 
     #----------------------------------------------------------------------
@@ -458,7 +458,7 @@ class DataEngine(object):
         contract = event.dict_['data']
         self.contractDict[contract.vtSymbol] = contract
         self.contractDict[contract.symbol] = contract       # 使用常规代码（不包括交易所）可能导致重复
-    
+
     #----------------------------------------------------------------------
     def processOrderEvent(self, event):
         """处理委托事件"""
@@ -530,6 +530,7 @@ class DataEngine(object):
         """查询合约对象"""
         try:
             return self.contractDict[vtSymbol]
+
         except KeyError:
             return None
         
@@ -543,6 +544,7 @@ class DataEngine(object):
         """保存所有合约对象到硬盘"""
         f = shelve.open(self.contractFilePath)
         f['data'] = self.contractDict
+
         f.close()
     
     #----------------------------------------------------------------------

@@ -114,7 +114,7 @@ class Test:
         self.q.RegisterFront(self.frontAddr.split(',')[1])
         self.q.Init()
         # self.q.Join()
-        self.q.OnRspQryTradingAccount
+
     def Qry(self):
         sleep(1.1)
         self.t.ReqQryInstrument()
@@ -145,6 +145,9 @@ class Test:
                 SessionID=pOrder.getSessionID(),
                 ActionFlag=ctp.ActionFlagType.Delete)
 
+    def onErrRtnOrderInsert(self,data,error):
+        print('haoweihua')
+
     def Run(self):
         # CreateApi时会用到log目录,需要在程序目录下创建**而非dll下**
         self.t.CreateApi()
@@ -159,6 +162,7 @@ class Test:
         self.t.OnRtnInstrumentStatus = self.OnRtnInstrumentStatus
         self.t.OnRspOrderInsert = self.OnRspOrderInsert
         self.t.OnRtnOrder = self.OnRtnOrder
+        self.t.OnErrRtnOrderInsert = self.onErrRtnOrderInsert
         # _thread.start_new_thread(self.Qry, ())
         self.t.RegCB()
 

@@ -348,9 +348,9 @@ def test():
     
     app = QCoreApplication(sys.argv)
     
-    ee = EventEngine2()
-    #ee.register(EVENT_TIMER, simpletest)
-    ee.registerGeneralHandler(simpletest)
+    ee = EventEngine()
+    ee.register(EVENT_TIMER, simpletest)
+    #ee.registerGeneralHandler(simpletest)
     ee.start()
     
     app.exec_()

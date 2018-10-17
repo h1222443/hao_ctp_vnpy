@@ -203,26 +203,26 @@ class CtpGateway(VtGateway):
         if self.qryEnabled:
             # 需要循环的查询函数列表
             self.qryFunctionList = [self.qryAccount, self.qryPosition]
-            
-            self.qryCount = 0           # 查询触发倒计时
-            self.qryTrigger = 2         # 查询触发点
-            self.qryNextFunction = 0    # 上次运行的查询函数索引
-            
+
+            self.qryCount = 0  # 查询触发倒计时
+            self.qryTrigger = 2  # 查询触发点
+            self.qryNextFunction = 0  # 上次运行的查询函数索引
+
             self.startQuery()
-    
-    #----------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------
     def query(self, event):
         """注册到事件处理引擎上的查询函数"""
         self.qryCount += 1
-        
+
         if self.qryCount > self.qryTrigger:
             # 清空倒计时
             self.qryCount = 0
-            
+
             # 执行查询函数
             function = self.qryFunctionList[self.qryNextFunction]
             function()
-            
+
             # 计算下次查询函数的索引，如果超过了列表长度，则重新设为0
             self.qryNextFunction += 1
             if self.qryNextFunction == len(self.qryFunctionList):
@@ -625,15 +625,17 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def onRspOrderInsert(self, data, error, n, last):
         """发单错误（柜台）"""
+
+
         # 推送委托信息
         order = VtOrderData()
         order.gatewayName = self.gatewayName
-        order.symbol = data.InstrumentID
+        order.symbol = data.InstrumentID.decode('utf8')
         order.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         order.vtSymbol = order.symbol
-        order.orderID = data.OrderRef
-        order.vtOrderID = '.'.join([self.gatewayName, order.orderID.decode('utf8')])
-        order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
+        order.orderID = data.OrderRef.decode('utf8')
+        order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
+        order.direction = directionMapReverse1.get(data.Direction, DIRECTION_UNKNOWN)
         order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
         order.price = data.LimitPrice
@@ -1057,8 +1059,9 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def onRtnOrder(self, data):
         """报单回报"""
+
         # 更新最大报单编号
-        newref = data.OrderRef
+        newref = data.OrderRef.decode('utf8')
         self.orderRef = max(self.orderRef, int(newref))
 
         # 创建报单数据对象
@@ -1089,8 +1092,7 @@ class CtpTdApi:
         order.cancelTime = data.CancelTime.decode('utf8')
         order.frontID = data.FrontID
         order.sessionID = data.SessionID
-        print('hao')
-        print(data.OrderStatus)
+
         # 推送
         self.gateway.onOrder(order)
 
@@ -1130,15 +1132,16 @@ class CtpTdApi:
     def onErrRtnOrderInsert(self, data, error):
         """发单错误回报（交易所）"""
         # 推送委托信息
+
         order = VtOrderData()
         order.gatewayName = self.gatewayName
-        order.symbol = data.InstrumentID
+        order.symbol = data.InstrumentID.decode('utf8')
         order.exchange = exchangeMapReverse[data.ExchangeID.decode('utf8')]
         order.vtSymbol = order.symbol
-        order.orderID = data.OrderRef
-        order.vtOrderID = '.'.join([self.gatewayName, order.orderID.decode('utf8')])
-        order.direction = directionMapReverse.get(data.Direction, DIRECTION_UNKNOWN)
-        order.offset = offsetMapReverse.get(data.CombOffsetFlag, OFFSET_UNKNOWN)
+        order.orderID = data.OrderRef.decode('utf8')
+        order.vtOrderID = '.'.join([self.gatewayName, order.orderID])
+        order.direction = directionMapReverse1.get(data.Direction.decode('utf8'), DIRECTION_UNKNOWN)
+        order.offset = offsetMapReverse.get(data.CombOffsetFlag.decode('utf8'), OFFSET_UNKNOWN)
         order.status = STATUS_REJECTED
         order.price = data.LimitPrice
         order.totalVolume = data.VolumeTotalOriginal
@@ -1150,6 +1153,7 @@ class CtpTdApi:
         err.errorID = error.ErrorID
         err.errorMsg = error.ErrorMsg.decode('gbk')
         self.gateway.onError(err)
+
 
     #----------------------------------------------------------------------
     def onErrRtnOrderAction(self, data, error):
@@ -1419,14 +1423,15 @@ class CtpTdApi:
             self.TDAPI.OnRtnTrade = self.onRtnTrade
             self.TDAPI.OnErrRtnOrderInsert = self.onErrRtnOrderInsert
             self.TDAPI.OnErrRtnOrderAction = self.onErrRtnOrderAction
+            self.TDAPI.OnRtnInstrumentStatus = self.onRtnInstrumentStatus
 
 
             # _thread.start_new_thread(self.Qry, ())
             self.TDAPI.RegCB()
 
             self.TDAPI.RegisterFront(self.address)
-            self.TDAPI.SubscribePrivateTopic(nResumeType=2)  # quick
-            self.TDAPI.SubscribePrivateTopic(nResumeType=2)
+            self.TDAPI.SubscribePrivateTopic(nResumeType=0)  # quick
+            self.TDAPI.SubscribePublicTopic(nResumeType=0)
             self.TDAPI.Init()
 #************************************************************************
 
@@ -1467,12 +1472,14 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def qryAccount(self):
         """查询账户"""
+        print('123')
         self.reqID += 1
         self.TDAPI.ReqQryTradingAccount()
 
     #----------------------------------------------------------------------
     def qryPosition(self):
         """查询持仓"""
+        print('321')
         self.reqID += 1
         self.TDAPI.ReqQryInvestorPosition(BrokerID=self.brokerID,InvestorID=self.userID)
 
