@@ -77,9 +77,9 @@ posiDirectionMapReverse = {v:k for k,v in posiDirectionMap.items()}
 
 # 产品类型映射
 productClassMap = {}
-productClassMap[PRODUCT_FUTURES] = ProductClassType.Futures
-productClassMap[PRODUCT_OPTION] = ProductClassType.Options
-productClassMap[PRODUCT_COMBINATION] = ProductClassType.Combination
+productClassMap[PRODUCT_FUTURES] = ProductClassType.Futures.__char__()
+productClassMap[PRODUCT_OPTION] = ProductClassType.Options.__char__()
+productClassMap[PRODUCT_COMBINATION] = ProductClassType.Combination.__char__()
 productClassMapReverse = {v:k for k,v in productClassMap.items()}
 productClassMapReverse[defineDict["THOST_FTDC_PC_ETFOption"]] = PRODUCT_OPTION
 productClassMapReverse[defineDict["THOST_FTDC_PC_Stock"]] = PRODUCT_EQUITY
@@ -863,7 +863,7 @@ class CtpTdApi:
         contract.gatewayName = self.gatewayName
 
         contract.symbol = data.InstrumentID.decode('utf8')
-        contract.exchange = data.ExchangeID
+        contract.exchange = data.ExchangeID.decode('utf8')
         contract.vtSymbol = contract.symbol #'.'.join([contract.symbol, contract.exchange])
         contract.name = data.InstrumentName.decode('GBK')
 
@@ -871,21 +871,21 @@ class CtpTdApi:
         contract.size = data.VolumeMultiple
         contract.priceTick = data.PriceTick
         contract.strikePrice = data.StrikePrice
-        contract.productClass = productClassMapReverse.get(data.ProductClass, PRODUCT_UNKNOWN)
-        contract.expiryDate = data.ExpireDate
+        contract.productClass = productClassMapReverse.get(data.ProductClass.decode('utf8'), PRODUCT_UNKNOWN)
+        contract.expiryDate = data.ExpireDate.decode('utf8')
 
         # ETF期权的标的命名方式需要调整（ETF代码 + 到期月份）
         if contract.exchange in [EXCHANGE_SSE, EXCHANGE_SZSE]:
             contract.underlyingSymbol = '-'.join([data.UnderlyingInstrID, str(data.ExpireDate)[2:-2]])
         # 商品期权无需调整
         else:
-            contract.underlyingSymbol = data.UnderlyingInstrID
+            contract.underlyingSymbol = data.UnderlyingInstrID.decode('utf8')
 
         # 期权类型
         if contract.productClass is PRODUCT_OPTION:
             if data.OptionsType == '1':
                 contract.optionType = OPTION_CALL
-            elif data.OptionsType == '2':
+            elif data.OptionsType.__char__() == '2':
                 contract.optionType = OPTION_PUT
 
         # 缓存代码和交易所的印射关系
