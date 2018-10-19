@@ -1304,10 +1304,10 @@ class SettingEditor(QtWidgets.QWidget):
     def initUi(self):
         """初始化界面"""
         self.setWindowTitle(vtText.EDIT_SETTING)
-        
+
         self.comboFileName = QtWidgets.QComboBox()
         self.comboFileName.addItems(jsonPathDict.keys())
-        
+
         buttonLoad = QtWidgets.QPushButton(vtText.LOAD)
         buttonSave = QtWidgets.QPushButton(vtText.SAVE)
         buttonLoad.clicked.connect(self.loadSetting)
@@ -1335,15 +1335,15 @@ class SettingEditor(QtWidgets.QWidget):
         self.currentFileName = str(self.comboFileName.currentText())
         filePath = jsonPathDict[self.currentFileName]
         self.labelPath.setText(filePath)
-        
-        with open(filePath) as f:
+
+        with open(filePath,encoding='utf8') as f:
             self.editSetting.clear()
-            
+
             for line in f:
-                line = line.replace('\n', '')   # 移除换行符号
-                line = line.decode('UTF-8')
+                line = line.replace('\n', '')  # 移除换行符号
+                line = line
                 self.editSetting.append(line)
-    
+
     #----------------------------------------------------------------------
     def saveSetting(self):
         """保存配置"""
@@ -1352,11 +1352,11 @@ class SettingEditor(QtWidgets.QWidget):
         
         filePath = jsonPathDict[self.currentFileName]
         
-        with open(filePath, 'w') as f:
+        with open(filePath, 'w',encoding='utf8') as f:
             content = self.editSetting.toPlainText()
-            content = content.encode('UTF-8')
+            content = content
             f.write(content)
-        
+
     #----------------------------------------------------------------------
     def show(self):
         """显示"""
@@ -1368,4 +1368,4 @@ class SettingEditor(QtWidgets.QWidget):
         super(SettingEditor, self).show()
 
     
-    
+
