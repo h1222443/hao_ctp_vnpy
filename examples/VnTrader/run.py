@@ -50,7 +50,7 @@ def main():
     me.addGateway(ctpGateway)
 
     # 添加上层应用
-
+    me.addApp(ctaStrategy)
     me.addApp(dataRecorder)
 
     # 创建主窗口

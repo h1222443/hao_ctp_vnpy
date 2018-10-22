@@ -43,19 +43,19 @@ class CtaValueMonitor(QtWidgets.QTableWidget):
         if not self.inited:
             self.setColumnCount(len(data))
             self.setHorizontalHeaderLabels(data.keys())
-            
+
             col = 0
             for k, v in data.items():
-                cell = QtWidgets.QTableWidgetItem(unicode(v))
+                cell = QtWidgets.QTableWidgetItem(str(v))
                 self.keyCellDict[k] = cell
                 self.setItem(0, col, cell)
                 col += 1
-            
+
             self.inited = True
         else:
             for k, v in data.items():
                 cell = self.keyCellDict[k]
-                cell.setText(unicode(v))
+                cell.setText(str(v))
 
 
 ########################################################################
@@ -118,12 +118,13 @@ class CtaStrategyManager(QtWidgets.QGroupBox):
     def updateMonitor(self):
         """显示策略最新状态"""
         paramDict = self.ctaEngine.getStrategyParam(self.name)
+
         if paramDict:
             self.paramMonitor.updateData(paramDict)
-            
+
         varDict = self.ctaEngine.getStrategyVar(self.name)
         if varDict:
-            self.varMonitor.updateData(varDict)        
+            self.varMonitor.updateData(varDict)
     
     #----------------------------------------------------------------------
     def updateVar(self, event):
@@ -223,11 +224,11 @@ class CtaEngineManager(QtWidgets.QWidget):
         for name in l:
             strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine, name)
             vbox.addWidget(strategyManager)
-        
+
         vbox.addStretch()
-        
+
         w.setLayout(vbox)
-        self.scrollArea.setWidget(w)   
+        self.scrollArea.setWidget(w)
         
     #----------------------------------------------------------------------
     def initAll(self):

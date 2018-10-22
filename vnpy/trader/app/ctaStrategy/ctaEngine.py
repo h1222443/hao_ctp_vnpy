@@ -499,7 +499,7 @@ class CtaEngine(AppEngine):
     #----------------------------------------------------------------------
     def saveSetting(self):
         """保存策略配置"""
-        with open(self.settingFilePath, 'w') as f:
+        with open(self.settingFilePath, 'w', encoding='utf8') as f:
             l = []
             
             for strategy in self.strategyDict.values():
@@ -514,7 +514,7 @@ class CtaEngine(AppEngine):
     #----------------------------------------------------------------------
     def loadSetting(self):
         """读取策略配置"""
-        with open(self.settingFilePath) as f:
+        with open(self.settingFilePath,encoding='utf8') as f:
             l = json.load(f)
             
             for setting in l:

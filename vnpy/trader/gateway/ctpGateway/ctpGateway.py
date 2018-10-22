@@ -1115,7 +1115,7 @@ class CtpTdApi:
         trade.vtOrderID = '.'.join([self.gatewayName, trade.orderID])
 
         # 方向
-        trade.direction = directionMapReverse.get(data.Direction.decode('utf8'), '')
+        trade.direction = directionMapReverse1.get(data.Direction.decode('utf8'), '')
 
         # 开平
         trade.offset = offsetMapReverse.get(data.OffsetFlag.decode('utf8'), '')
@@ -1506,9 +1506,7 @@ class CtpTdApi:
         req['ContingentCondition'] = ContingentConditionType.Immediately  # 立即发单
         req['StopPrice'] = 0
         req['ForceCloseReason'] = ForceCloseReasonType.NotForceClose  # 非强平
-        req['IsAutoSuspend'] = 0
-        req['IsSwapOrder'] = 0
-        req['UserForceClose'] = 0
+
 
         self.TDAPI.ReqOrderInsert(**req)
 

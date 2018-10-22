@@ -2,13 +2,13 @@
     {
         "name": "double ema",
         "className": "DoubleMaStrategy",
-        "vtSymbol": "rb1805"
+        "vtSymbol": "au1812"
     },
 
     {
         "name": "atr rsi",
         "className": "AtrRsiStrategy",
-        "vtSymbol": "IC1802"
+        "vtSymbol": "ag1812"
     },
 
     {
