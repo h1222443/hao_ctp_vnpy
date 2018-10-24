@@ -268,7 +268,7 @@ class CtaEngine(AppEngine):
             try:
                 # 添加datetime字段
                 if not tick.datetime:
-                    tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+                    tick.datetime = datetime.strptime(' '.join([tick.date, tick.time[:-2]]), '%Y%m%d %H:%M:%S.%f')
             except ValueError:
                 self.writeCtaLog(traceback.format_exc())
                 return
