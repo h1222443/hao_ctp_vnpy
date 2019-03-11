@@ -247,7 +247,7 @@ class CtpMdApi:
     def __init__(self, gateway):
 
         self.Session = ''
-        dllpath = 'C:\\Users\\hao\\PycharmProjects\\hao_ctp_vnpy\\dll'
+        dllpath = 'C:\\Users\\Administrator\\PycharmProjects\\hao_ctp_vnpy\\dll'
         self.MDAPI = Quote(os.path.join(dllpath, 'ctp_quote.' + ('dll' if 'Windows' in platform.system() else 'so')))
 
         self.gateway = gateway                  # gateway对象
@@ -493,7 +493,7 @@ class CtpTdApi:
     #----------------------------------------------------------------------
     def __init__(self, gateway):
         self.Session = ''
-        dllpath = 'C:\\Users\\hao\\PycharmProjects\\hao_ctp_vnpy\\dll'
+        dllpath = 'C:\\Users\\Administrator\\PycharmProjects\\hao_ctp_vnpy\\dll'
         self.TDAPI = Trade(os.path.join(dllpath, 'ctp_trade.' + ('dll' if 'Windows' in platform.system() else 'so')))
 
         self.gateway = gateway                  # gateway对象

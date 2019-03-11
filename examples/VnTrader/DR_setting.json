@@ -4,22 +4,22 @@
 
     "tick":
     [
-        ["au1812", "CTP"],
-        ["ag1812", "CTP"]
+        ["au1906", "CTP"],
+        ["ag1906", "CTP"]
 
     ],
 
     "bar":
     [
-        ["au1812", "CTP"],
-        ["ag1812", "CTP"]
+        ["au1906", "CTP"],
+        ["ag1906", "CTP"]
 
     ],
 
     "active":
     {
-        "rb.HOT": "au1812",
-        "m.HOT": "ag1812"
+        "rb.HOT": "au1906",
+        "m.HOT": "ag1906"
 
     }
 }
